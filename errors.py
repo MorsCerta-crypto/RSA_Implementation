@@ -1,7 +1,7 @@
 
 
 
-# Define Custom Erros
+# Define Custom Errors
 class DecryptionError(Exception):
     """ Error while decrypting"""
     pass

@@ -9,6 +9,7 @@ ALPHABET ='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ,.?!:;
 def integer_to_octet_string(x:int, length:int)->bytes:
     """
     Converts a nonnegative integer to an octet string of a given length.
+    This implements the i2os-primitive.
     """
     assert x >= 0, "integer must be positive"
     assert length >= 0, "length must be positive"
@@ -20,12 +21,15 @@ def integer_to_octet_string(x:int, length:int)->bytes:
 def octet_string_to_integer(octet:bytes)->int:
     """
     Converts an octet string to a nonnegative integer.
+    This implements the os2i-primitive.
     """
     return int.from_bytes(octet,byteorder="big",signed=False)
 
 def string_to_integer(string:str)->int:
     """
     Converts a string to an integer.
+    This is a reverse of the integer_to_string function.
+    This encodes the index of the character in the ALPHABET string to an integer
     """
     n=0
     for letter in string:
@@ -35,6 +39,7 @@ def string_to_integer(string:str)->int:
 def integer_to_string(x:int)->str:
     """
     Converts an integer to a string.
+    
     """
     s = ""
     while x > 0:

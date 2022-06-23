@@ -11,19 +11,27 @@ HASH_LIMITATIONS = {
 }
 
 class Hasher:
+    """ 
+    this class can be extended with other hash functions that can be selected with hash_name
+    it is used to generate hashes and masks for RSA encryption
+    """
     def __init__(self,hash_name:str, hash_func:Optional[Callable]=None):
         self.hash_name = hash_name
         if hash_name == "sha1":
             self.hash_func = self.sha1
         elif not hash_func:
-                raise ValueError("hash_func not defined")
+            raise ValueError("hash_func not defined")
         else:
-            self.hash_func = hash_func
+            raise NotImplementedError(f"{hash_name} not implemented")
+        
         self.output_length = len(self.hash_func(b''))
     
     @property
     def get_hash_input_limit(self) -> int:
-        return HASH_LIMITATIONS.get(self.hash_name,0)
+        limit = HASH_LIMITATIONS.get(self.hash_name, None)
+        if not limit:
+            raise ValueError(f"{self.hash_name} has no limit implemented")
+        return limit
         
     def sha1(self,message):
         hasher = hashlib.sha1()

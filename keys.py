@@ -1,16 +1,12 @@
 from dataclasses import dataclass
 import random
 from typing import Optional
+from errors import KeyGenError
 from primes import PrimeGenerator
 
 
 
 DEFAULT_EXPONENT = 65537
-
-
-class KeyGenError(Exception):
-    pass
-
 
 
 class KeyGenerator:
@@ -64,14 +60,14 @@ class KeyGenerator:
         # d * e = 1 (mod phi) <=> d * e + k * phi = 1
         x, y, q = self.extend_euclid(a, b)
         if q != 1:
-            raise ValueError("not relative prime")
+            raise KeyGenError("not relative prime")
         else:
             return x % b
         
     def new_keys(self, n_bits: int, exponent: Optional[int] = DEFAULT_EXPONENT, n_processes: int = 8) -> tuple:
         """Generate a new pair of RSA keys of nbits bits. Returns (privateKey, publicKey)."""
         if n_processes < 1:
-            raise ValueError("n_processes must be at least 1")
+            raise KeyGenError("n_processes must be at least 1")
         p,q = self.prime_generator.get_primes_p_q(n_bits//2, n_processes=n_processes)
         return self.gen_keypair(p, q, exponent)
         
@@ -112,5 +108,5 @@ if __name__ == "__main__":
 
     rsa = KeyGenerator()
     pub_key, prv_key = rsa.new_keys(n_bits=512, exponent=DEFAULT_EXPONENT, n_processes=8)
-    print(pub_key)
+    (pub_key)
     print(prv_key)

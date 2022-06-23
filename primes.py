@@ -7,10 +7,11 @@ import multiprocessing
 from multiprocessing.connection import Connection
 import os
 import struct
-from typing import Optional
 
 
 class PrimeGenerator:
+    
+    
     
     def __init__(self, n_bits: int = 60) -> None:
         self.n_bits = n_bits
@@ -26,7 +27,6 @@ class PrimeGenerator:
             # make sure length of n is nbits
             n = p * q
             
-            print("Error:", n.bit_length() - (n_bits * 2))
             if n.bit_length() == n_bits * 2:
                 return True
             return False
@@ -35,7 +35,6 @@ class PrimeGenerator:
         offset = n_bits // 8
         p_bits = n_bits + offset
         q_bits = n_bits - offset
-        print("Generating prime numbers p and q of", p_bits,"and",q_bits, "bits")
         # Get a random number
         p = self.find_prime_n_processes(p_bits,n_processes)
         q = self.find_prime_n_processes(q_bits,n_processes)
@@ -145,7 +144,6 @@ class PrimeGenerator:
         # create a list of n_processes processes
         if n_processes > multiprocessing.cpu_count():
             n_processes = multiprocessing.cpu_count()
-        print(f"using {n_processes} Processes to find prime numbers")
         receiver,sender = Pipe(duplex=False)
         try:
             processes = [Process(target=self.get_prime_pipe, args=(n_bits,sender)) for _ in range(n_processes)]

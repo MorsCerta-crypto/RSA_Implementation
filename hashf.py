@@ -2,7 +2,6 @@
 import hashlib
 from typing import Callable, Optional
 from conversion import integer_to_octet_string
-from sklearn.neighbors import VALID_METRICS
 from math import ceil
 
 HASH_LIMITATIONS = {

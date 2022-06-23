@@ -17,6 +17,10 @@ from utils import byte_xor
 
 
 class OAEP:
+    """
+    7.1.2.  Decryption Operation - RSAES-OAEP: rsaes_oaep_decrypt
+    This class implements the RSAES-OAEP decryption operation.
+    """
     
     
     def __init__(self, public_key:PublicKey, 

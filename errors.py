@@ -1,6 +1,5 @@
 
 
-
 # Define Custom Errors
 class DecryptionError(Exception):
     """ Error while decrypting"""
@@ -20,4 +19,7 @@ class EncodingError(Exception):
 
 class InvalidSignatureError(Exception):
     """ Errror while verifying signature """
+    pass
+
+class KeyGenError(Exception):
     pass

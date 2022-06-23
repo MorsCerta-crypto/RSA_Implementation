@@ -6,6 +6,7 @@ from keys import DEFAULT_EXPONENT
 
 
 class SPEEDRSA:
+    """ this class is ment to hold functions that outperform others in this project"""
     
     
     def key_gen_speedup(self,p,q,n,sec,b,k,c,e=DEFAULT_EXPONENT):

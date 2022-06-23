@@ -7,7 +7,7 @@
 
 from math import ceil
 from keys import PrivateKey,PublicKey
-from errors import DecodingError, EncodingError, InvalidSignatureError
+from errors import EncodingError, InvalidSignatureError
 from conversion import octet_string_to_integer,integer_to_octet_string
 from hashf import Hasher  
 from primes import RandomNumberGenerator
@@ -28,9 +28,7 @@ class SignaturGenerator:
         Signature function (RSA-PSS) signs message using private key.
         """
         encoded = self.emsa_pss_encode(message,emBits=emBits,sLen=salt_length)
-        print("encoded bytes:",ceil(octet_string_to_integer(encoded).bit_length()/8))
         converted = octet_string_to_integer(encoded)
-        print("converted bytes:",ceil(converted.bit_length()/8))
         signature = self.rsa_sign(converted)
         return integer_to_octet_string(signature,self.private_key.n_octet_length)
         
@@ -88,7 +86,6 @@ class SignaturGenerator:
         # step 3
         if emLen < (self.hasher.output_length + sLen + 2):
             raise ValueError("inconsistent")
-        print(signature[-1],signature[0],signature[0:1],signature[-1:])
         # step 4
         if signature[-1:] != b'\xbc':
             raise ValueError("inconsistent")
@@ -144,7 +141,6 @@ class SignaturGenerator:
         """
         Encodes message using EMSA-PSS.
         """
-        print(self.hasher.get_hash_input_limit,self.hasher.output_length)
         assert emBits > ((8 * self.hasher.output_length) + (8 * sLen) + 9)
         assert emBits.bit_length() <= MAX_BIT_LENGTH
         
@@ -164,7 +160,6 @@ class SignaturGenerator:
         ps = b"\x00" * (emLen - sLen - self.hasher.output_length - 2)
         db = ps + b"\x01" + random_salt
         
-        print(len(db),"should be",emLen,"-",self.hasher.output_length,"-", 1)
         #assert len(db) == (emLen - self.hasher.output_length - 1)
         dbMask = self.hasher.gen_mask(_hash,emLen - self.hasher.output_length - 1)
         masked_db = byte_xor(db, dbMask)
@@ -178,9 +173,7 @@ class SignaturGenerator:
         
         byte_length_message = ceil(octet_string_to_integer(encoded_message).bit_length()/8)
         max_byte_length = ceil(MAX_BIT_LENGTH/8)
-        #assert byte_length_message <= max_byte_length 
-        print("byte_length_message",byte_length_message,"emLen",emLen)
-        #assert byte_length_message == emLen
+        assert byte_length_message == emLen
         return encoded_message
     
 if __name__ == "__main__":
@@ -202,7 +195,6 @@ if __name__ == "__main__":
     print("signing message")
     emBits = n.bit_length() -1
     res = s.sign(message=b"Cryptographie",salt_length=8,emBits=emBits)
-    print(res)
     
     verify = s.verify(signature=res,message=b"Cryptographie")
     print("valid?:",verify)

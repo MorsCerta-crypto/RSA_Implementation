@@ -17,11 +17,13 @@ MAX_BIT_LENGTH = 2^256
 
 class SignaturGenerator:
     
-    def __init__(self):
+    def __init__(self,private_key: PrivateKey, public_key: PublicKey):
         self.hasher = Hasher("sha1")
         self.randint_gen = RandomNumberGenerator()
+        self.private_key = private_key
+        self.public_key = public_key
     
-    def sign(self,private_key:PrivateKey,message:bytes,salt_length:int,emBits:int)->bytes:
+    def sign(self,message:bytes,salt_length:int,emBits:int)->bytes:
         """
         Signature function (RSA-PSS) signs message using private key.
         """
@@ -29,43 +31,42 @@ class SignaturGenerator:
         print("encoded bytes:",ceil(octet_string_to_integer(encoded).bit_length()/8))
         converted = octet_string_to_integer(encoded)
         print("converted bytes:",ceil(converted.bit_length()/8))
-        signature = self.rsa_sign(private_key,converted)
-        return integer_to_octet_string(signature,private_key.n_octet_length)
+        signature = self.rsa_sign(converted)
+        return integer_to_octet_string(signature,self.private_key.n_octet_length)
         
 
     
-    def rsa_sign(self,private_key:PrivateKey,message:int)->int:
+    def rsa_sign(self,message:int)->int:
         """
         Returns the signature of the message.
         """
-        print("HEADROOM: privatekey.n - message:",private_key.n-message)
         assert isinstance(message,int), "message must be an integer"
-        if message>=private_key.n or message<0:
+        if message>=self.private_key.n or message<0:
             raise ValueError("message representative out of range")
-        return pow(message,private_key.d,private_key.n)
+        return pow(message,self.private_key.d,self.private_key.n)
 
 
-    def rsa_validate(self,public_key:PublicKey,signature:int)->int:
+    def rsa_validate(self,signature:int)->int:
         """
         Returns the message of the signature
         """
         assert isinstance(signature,int), "signature must be an integer"
-        if signature>=public_key.n or signature<0:
+        if signature>=self.public_key.n or signature<0:
             raise ValueError("signature representative out of range")
-        return pow(signature,public_key.e,public_key.n)
+        return pow(signature,self.public_key.e,self.public_key.n)
     
-    def verify(self,public_key:PublicKey,message:bytes,signature:bytes)->bool:
+    def verify(self,message:bytes,signature:bytes)->bool:
         """
         Verifies the signature of the message. True is returned if the signature is valid.
         """
-        if len(signature) != public_key.n_octet_length:
+        if len(signature) != self.public_key.n_octet_length:
             raise InvalidSignatureError()
         converted = octet_string_to_integer(signature)
         try:
-            validated = self.rsa_validate(public_key,converted)
+            validated = self.rsa_validate(converted)
         except ValueError:
             raise InvalidSignatureError()
-        decoded = integer_to_octet_string(validated,public_key.n_octet_length)
+        decoded = integer_to_octet_string(validated,self.public_key.n_octet_length)
         verified = self.emsa_pss_verify(message,decoded)
         if verified:
             return True
@@ -82,7 +83,8 @@ class SignaturGenerator:
         # step 2
         message_hash = self.hasher.hash_func(message)
         hLen = len(message_hash)
-        emLen = ceil(octet_string_to_integer(signature).bit_length()/8) 
+        emBits = octet_string_to_integer(signature).bit_length()
+        emLen = ceil(emBits/8) 
         # step 3
         if emLen < (self.hasher.output_length + sLen + 2):
             raise ValueError("inconsistent")
@@ -195,11 +197,12 @@ if __name__ == "__main__":
     private_key,public_key = key_gen.gen_keypair(p=p,q=q,exponent=e)
     #private_key,public_key = key_gen.new_keys(n_bits=1024,exponent=e)
     print(private_key,public_key)
-    s = SignaturGenerator()
+    s = SignaturGenerator(private_key=private_key,
+                          public_key=public_key)
     print("signing message")
     emBits = n.bit_length() -1
-    res = s.sign(private_key, message=b"Cryptographie",salt_length=8,emBits=emBits)
+    res = s.sign(message=b"Cryptographie",salt_length=8,emBits=emBits)
     print(res)
     
-    verify = s.verify(public_key,signature=res,message=b"Cryptographie")
+    verify = s.verify(signature=res,message=b"Cryptographie")
     print("valid?:",verify)

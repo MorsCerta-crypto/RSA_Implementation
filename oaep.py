@@ -111,9 +111,9 @@ class OAEP:
         # convert cipher to int representation
         cipher_int = octet_string_to_integer(ciphertext)
         # decrypt cipher using private key
-        m = pow(cipher_int, private_key.d, private_key.n)
+        m = pow(cipher_int, self.private_key.d, self.private_key.n)
         # convert m to bytes
-        decrypted = integer_to_octet_string(m, private_key.n_octet_length)
+        decrypted = integer_to_octet_string(m, self.private_key.n_octet_length)
         # decode enrypted message
         return decrypted
  

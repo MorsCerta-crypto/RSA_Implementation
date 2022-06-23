@@ -3,28 +3,25 @@ from typing import Optional
 from oaep import OAEP
 from keys import KeyGenerator
 from primes import PrimeGenerator
+from signature import SignaturGenerator
 
 class BasicEncryption:
     
-    def __init__(self, keylength = 60) -> None:
+    def __init__(self, n_bits = 60) -> None:
         """ generate keys """
-        self.keylength = keylength
+        self.n_bits = n_bits
         self.key_generator = KeyGenerator()
         self.prime_generator = PrimeGenerator()
         self.private_key,self.public_key = self.get_keys()
         self.encryptor = OAEP(private_key=self.private_key,
                               public_key=self.public_key)
+        self.signer = SignaturGenerator(private_key=self.private_key,
+                                        public_key=self.public_key)
         
 
-
-    def gen_pq(self)->tuple[int,int]:
-        p,q = self.prime_generator.get_primes_p_q(n_bits=self.keylength)
-        print("p,q",p,q)
-        return p,q
     
     def get_keys(self):
-        p,q = self.gen_pq()
-        private_key, public_key = self.key_generator.gen_keypair(p=p,q=q)
+        private_key, public_key = self.key_generator.new_keys(n_bits=self.n_bits)
         return private_key,public_key
 
     def encrypt(self,message:str, label:Optional[str] = None)->bytes:
@@ -38,10 +35,25 @@ class BasicEncryption:
         message = self.encryptor.decrypt(ciphertext,label)
         return message.decode("ascii")
     
+    def sign(self,message:str,salt_length=8)->bytes:
+        transformed_message = message.encode("ascii")
+        emBits = self.private_key.n.bit_length() - 1
+        signature = self.signer.sign(transformed_message,salt_length=salt_length,emBits=emBits)
+        return signature
+    
+    def verify(self,message:str,signature:bytes)->bool:
+        transformed_message = message.encode("ascii")
+        valid = self.signer.verify(message=transformed_message,signature=signature)
+        return valid
+    
     
     
 if __name__=="__main__":
-    be = BasicEncryption(keylength=80)
-    cipher = be.encrypt("Hello")
+    message = "Hello World"
+    be = BasicEncryption(n_bits=1024)
+    cipher = be.encrypt(message)
     ans = be.decrypt(cipher)
+    
+    signed = be.sign(message)
+    verfied = be.verify(signature=signed,message=message)
     print("decoded:",ans)

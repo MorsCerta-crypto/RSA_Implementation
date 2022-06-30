@@ -217,30 +217,19 @@ class RandomNumberGenerator:
             
             
 if __name__ == "__main__":
+    
+    import time
     pg = PrimeGenerator()
-    # p, q = pg.get_primes_p_q(40)
+    start = time.time()
+    for _ in range(100):
+        p, q = pg.get_primes_p_q(2048)
+    end = time.time()
+    print("Zeit ohne multiprocessing: ", end-start)
     # print(p, q)
     print("running multiprocessing")
-    results = pg.find_prime_n_processes(80,8)
-    print("results:",results)
-    import time
-
-    
-    primes = list()
     start = time.time()
-    for i in range(2^16,2^128):
-        if pg.is_prime(i):
-            primes.append(i)
+    for _ in range(100):
+        results = pg.find_prime_n_processes(2048,8)
+    #print("results:",results)
     end = time.time()
-    print("is prime took:", end - start)
-    print("isprime found", len(primes), "primes")
-    
-    
-    primes = list()
-    start = time.time()
-    for i in range(2^16,2^128):
-        if pg.is_prime_miller(i):
-            primes.append(i)
-    end = time.time()
-    print("is prime took:", end - start)
-    print("isprime found", len(primes), "primes")
+    print("multiprocessing:", end - start)

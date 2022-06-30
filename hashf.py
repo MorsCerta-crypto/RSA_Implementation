@@ -41,9 +41,9 @@ class Hasher:
         """ MGF1 mask generation function with SHA-1 """
         t = b''
         hlen = len(self.hash_func(b''))
-        for c in range(0, ceil(mlen / hlen)):
-            octet_c = integer_to_octet_string(c, 4)
-            t += self.hash_func(seed + octet_c)
+        for count in range(0, ceil(mlen / hlen)):
+            octet_count = integer_to_octet_string(count, 4)
+            t += self.hash_func(seed + octet_count)
         return t[:mlen]
 
     

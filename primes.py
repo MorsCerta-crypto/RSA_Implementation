@@ -7,50 +7,95 @@ import multiprocessing
 from multiprocessing.connection import Connection
 import os
 import struct
+from threading import Thread
 
+
+class FoundPrimeException(Exception):
+    def __init__(self,p,q):
+        self.p = p
+        self.q = q
+        super().__init__(f"Found primes: {p} {q}")
+
+
+MAX_CYCLES_WITHOUT_FINDING_A_PRIME = 500 # 1 Cycle == 25 ms
 
 class PrimeGenerator:
     
     
     
-    def __init__(self, n_bits: int = 60) -> None:
+    def __init__(self, n_bits: int = 1024) -> None:
         self.n_bits = n_bits
         self.rn_gen = RandomNumberGenerator()
-    
-    
-    def get_primes_p_q(self, n_bits: int, n_processes:int = 8) -> tuple[int, int]:
-        """Returns two primes of nbits bits"""
+        self.candidates = {"p":[],"q":[]}
+        self.candidates_runs = 0
+        self.found_both_primes = False
+        self.sender = None
+        self.receiver = None
         
-        def primes_ok(p:int,q:int)->bool:
+    def primes_ok(self,p:int,q:int,n_bits)->bool:
             if p == q:
                 return False
             # make sure length of n is nbits
             n = p * q
-            
-            if n.bit_length() == n_bits * 2:
+            n_bitlenth = n.bit_length()
+            if n_bitlenth == n_bits:
                 return True
+            
             return False
+    
+    def get_primes_p_q(self, n_bits: int, n_processes:int = 8):
+        """Returns two primes of nbits bits"""
+        
+        
         
         # offset between prime numbers
+        bits = n_bits//2
         offset = n_bits // 8
-        p_bits = n_bits + offset
-        q_bits = n_bits - offset
+        p_bits = bits + offset
+        q_bits = bits - offset
         # Get a random number
-        p = self.find_prime_n_processes(p_bits,n_processes)
-        q = self.find_prime_n_processes(q_bits,n_processes)
-
+        self.find_prime_n_processes(p_bits,q_bits,n_bits,n_processes)
+        
+    
+        # p = self.get_candidate("p")
+        # q = self.get_candidate("q")  
+        
+    def find_p_q(self,n_bits):
+        prime1,type1 = self.receiver.recv() 
+        prime2,type2 = self.receiver.recv() 
+        p = prime1 if type1 == "p" else prime2
+        q = prime2 if type2 == "p" else prime1
+        
         change_p = False
-        while not primes_ok(p=p, q=q):
+        while not self.primes_ok(p=p, q=q, n_bits=n_bits):
             # Change p on one iteration and q on the other
             if change_p:
-                p = self.find_prime_n_processes(p_bits,n_processes)
-            else:
-                q = self.find_prime_n_processes(q_bits,n_processes)
-
+                p = self.get_candidate("p")
+            elif not change_p:
+                q = self.get_candidate("q")
+            
             change_p = not change_p
+            
         # p sollte größer als q sein:
-        # http://www.di-mgt.com.au/rsa_alg.html#crt
-        return max(p,q), min(p,q)
+        # http://www.di-mgt.com.au/rsa_alg.html
+        self.results_s.send((max(p,q), min(p,q)))
+        return 
+    
+    def get_candidate(self,type:str):
+        """ return a candidate prime number """
+        
+        def yield_prime(self):
+            """ return a candidate prime number """
+            return self.receiver.recv()
+        
+        found_type = False
+        while True:
+            prime, found_type = yield_prime(self)
+            if type == found_type:
+                return prime
+            else: 
+                self.sender.send((prime,type))
+                
     
     def is_prime(self, number: int) -> bool:
         """Test if n is prime"""
@@ -126,43 +171,64 @@ class PrimeGenerator:
             if self.is_prime_miller(integer):
                 return integer
     
-    def get_prime_pipe(self,n_bits:int, sender:Connection)->None:
+    def get_prime_pipe(self,n_bits:int,type:str): #, sender:Connection)->None:
         """ return a prime number of n_bits bits """#
 
         while True:
             integer = self.rn_gen.get_random_odd_int(n_bits)
-            
             if self.is_prime_miller(integer):
-                if sender:
-                    sender.send(integer)
-                    return
-         
+                self.sender.send((integer,type))
+              
+    def primes(self,n_bits:int,n_processes):
+        """ return a list of prime numbers of n_bits bits """
+       
+        self.get_primes_p_q(n_bits,n_processes=n_processes)
+        
+        elem = self.results_r.recv()
+        if elem:
+            return elem
             
-            
-    def find_prime_n_processes(self,n_bits:int,n_processes:int)->int:
+       
+        
+    def find_prime_n_processes(self,p_bits:int,q_bits:int,n_bits:int,n_processes:int)->None:
         """ find a prime number of n_bits bits using n_processes processes """
         # create a list of n_processes processes
-        if n_processes > multiprocessing.cpu_count():
-            n_processes = multiprocessing.cpu_count()
-        receiver,sender = Pipe(duplex=False)
-        try:
-            processes = [Process(target=self.get_prime_pipe, args=(n_bits,sender)) for _ in range(n_processes)]
-
-            for process in processes:
-                process.start()
+        if n_processes >= multiprocessing.cpu_count():
+            n_processes = multiprocessing.cpu_count() - 1
             
-            for process in processes:
-                process.join()
-            
-            result = receiver.recv()
-        finally:
-            receiver.close()
-            sender.close()
+        self.receiver,self.sender = Pipe(duplex=False)
+        self.results_r,self.results_s = Pipe(duplex=False)
         
-        for process in processes:
-            process.terminate()
+        processes = []
+        find_process = None
+        try:
+           
+            p_processes = n_processes // 2 or 1
+            q_processes = n_processes - p_processes or 1
+            p_processes = [Process(target=self.get_prime_pipe, args=(p_bits,"p")) for _ in range(p_processes)]
+            q_processes = [Process(target=self.get_prime_pipe, args=(q_bits,"q")) for _ in range(q_processes)]
+            find_process = Process(target=self.find_p_q,args=(n_bits,))
+            processes = p_processes + q_processes
+            for process in processes:
+                process.daemon = True
+                process.start()
+                
+            find_process.start()
+            find_process.join()
+            find_process.terminate()
+            for process in processes:
+                process.terminate()
             
-        return result
+        except Exception as e:
+            if processes != []:
+                for process in processes:
+                    if process.is_alive():
+                        process.terminate()
+            if find_process is not None:
+                if find_process.is_alive():
+                    find_process.terminate()
+          
+           
     
 class RandomNumberGenerator:
     
@@ -219,17 +285,60 @@ class RandomNumberGenerator:
 if __name__ == "__main__":
     
     import time
-    pg = PrimeGenerator()
+    pg = PrimeGenerator(n_bits = 2048)
+    # print("running 1 multiprocessing")
+    # start = time.time()
+    # for _ in range(10):
+    #     results = pg.get_primes_p_q(2048,1)
+    # #print("results:",results)
+    # end = time.time()
+    # print("multiprocessing:", (end - start) /10)
+
+    
+    n_bits = 2048
+    print("running 4 multiprocessing")
+    n_processes = 2
+    print(f"running {n_processes//2} processes for p,q")
+    runs = 5
     start = time.time()
-    for _ in range(100):
-        p, q = pg.get_primes_p_q(2048)
-    end = time.time()
-    print("Zeit ohne multiprocessing: ", end-start)
-    # print(p, q)
-    print("running multiprocessing")
-    start = time.time()
-    for _ in range(100):
-        results = pg.find_prime_n_processes(2048,8)
+    for _ in range(runs):
+        results = pg.primes(n_bits,n_processes)
+        
     #print("results:",results)
     end = time.time()
-    print("multiprocessing:", end - start)
+    print("multiprocessing 4:", (end - start) /runs)
+
+    
+    # print("running 4 multiprocessing")
+    # n_processes = 4
+    # print(f"running {n_processes//2} processes for p,q")
+    # runs = 5
+    # start = time.time()
+    # for _ in range(runs):
+    #     results = pg.primes(n_bits,n_processes)
+        
+    # #print("results:",results)
+    # end = time.time()
+    # print("multiprocessing 4:", (end - start) /runs)
+    
+    # print("running 8 multiprocessing")
+    # n_processes = 8
+    # print(f"running {n_processes//2} processes for p, q")
+    
+    # start = time.time()
+    # for _ in range(runs):
+    #     results = pg.primes(n_bits,n_processes)
+    # #print("results:",results)
+    # end = time.time()
+    # print("multiprocessing 8:", (end - start) /runs)
+    
+    # print("running 12 multiprocessing")
+    # n_processes = 12
+    # print(f"running {n_processes//2} processes for p, q")
+    
+    # start = time.time()
+    # for _ in range(runs):
+    #     results = pg.primes(n_bits,n_processes)
+    # #print("results:",results)
+    # end = time.time()
+    # print("multiprocessing 12:", (end - start) /runs)

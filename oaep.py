@@ -5,11 +5,10 @@
 7.1.1.  Encryption Operation - RSAES-OAEP: rsaes_oaep_encrypt
 """
 
-import base64
 import os
 from typing import Optional
 from conversion import integer_to_octet_string, octet_string_to_integer
-from crypto import rsa_encryption
+from crypto import rsa_encryption,rsa_decryption
 from hashf import Hasher
 from keys import PublicKey,PrivateKey
 from errors import DecryptionError, EncryptionError, DecodingError
@@ -90,7 +89,6 @@ class OAEP:
         ps = b"\x00" * (self.public_key.n_octet_length - length_message - 2*length_label_hash - 2)
         db = label_hash + ps + b"\x01" + M
         seed = os.urandom(length_label_hash)
-        #seed = b'\xc3\x11-\xe9\xb00\x17w\x9cB\xd6\xf3\xaeW\x12\xaee\xa0\xa7\xdc'
         db_mask = self.hasher.gen_mask(seed, 
                                 self.public_key.n_octet_length-length_label_hash-1)
         masked_db = byte_xor(db,db_mask)
@@ -116,7 +114,7 @@ class OAEP:
         # convert cipher to int representation
         cipher_int = octet_string_to_integer(ciphertext)
         # decrypt cipher using private key
-        m = pow(cipher_int, self.private_key.d, self.private_key.n)
+        m = rsa_decryption(self.private_key, cipher_int)
         # convert m to bytes
         decrypted = integer_to_octet_string(m, self.private_key.n_octet_length)
         # decode enrypted message
@@ -157,59 +155,31 @@ class OAEP:
 
 if __name__ == "__main__":
     
-    from cryptography.x509 import load_pem_x509_certificate
-    import cryptography.hazmat.primitives.asymmetric.padding as pd
-    import cryptography.hazmat.primitives.hashes as h
-
-    #from keys import KeyGenerator
-    #k_gen = KeyGenerator()
-    #private_key, public_key = k_gen.new_keys(n_bits=1024)
-    # private_key = PrivateKey(d=11735087165628077683640682915753637121509919746244075937916619100077935316512993501342040032149388471728377983206593646720826424691463561393641592341965372625814541781670926217902840567482470301228650165406518091523357969962574320676219734859660095967028794489015189980296886270393029716933498933653118809001, p=11897064171352949677367428139275226992095671907288407399327822587720034658254527002262444428004939035532387185069684235188875007835517367774572951980025003, q=11080686001804698685086957605280542649201546458596506970198176871517658266964136168781703388020749110822165607456281239686215712946637901152634969360581403, n=131827632426082846615145601002699025716900173193280425907309130264279678923262265186399259099584242761683700357458095273421803461605150398192507548391392656810113495877114850548780407269362143205278366894555606441351929460085320359931154034119969558322902286062320895135635491392185984170810702938950556819209, e=65537)
-    # public_key = PublicKey(n=131827632426082846615145601002699025716900173193280425907309130264279678923262265186399259099584242761683700357458095273421803461605150398192507548391392656810113495877114850548780407269362143205278366894555606441351929460085320359931154034119969558322902286062320895135635491392185984170810702938950556819209, e=65537)
-    # hasher = Hasher('sha1')
-    # oaep = OAEP(public_key,private_key,hasher)
-    # message = b"Hello World!"
-    
-    # cipher = oaep.encrypt(message,label=b"first label")
-    # message = oaep.decrypt(cipher,label=b"first label")
-    
-    # print(message)
-    #
-    #
-    #
-    #
-    #
+    compare_to_openssl = True
     from conversion import octet_string_to_integer, integer_to_octet_string
     from openssl import read_private_key, read_public_key, load_hazmat_private_key, load_hazmat_public_key
     private_key = read_private_key("RSA_Implementation/private_key.pem")
     public_key = read_public_key("RSA_Implementation/public_key.pem")
-    private_key_openssl = load_hazmat_private_key("RSA_Implementation/private_key.pem")
-    public_key_openssl = load_hazmat_public_key("RSA_Implementation/public_key.pem")
-    #public_key_openssl = private_key_openssl.public_key()
+    
     hasher = Hasher('sha1')
     oaep = OAEP(public_key,private_key,hasher)
-    
     # Plaintext
     message = b"Hello World!"
     # Encrytion Implemented
     encrypted = oaep.encrypt(message)
-    # Encryption with OpenSSL
-    openssl_enc = public_key_openssl.encrypt(message,pd.OAEP(
-                        mgf=pd.MGF1(algorithm=h.SHA1()),
-                        algorithm=h.SHA1(),
-                        label=None
-                    ))
-    # Make sure the Encoded messages are not equal
-    assert encrypted != openssl_enc
-    # Decryption Implemented with encoded message from OpenSSL    
-    decrypted = oaep.decrypt(openssl_enc,label=b"")
-    # Decryption with OpenSSL
-    openssl_decrypted = private_key_openssl.decrypt(
-                                            encrypted,
-                                            padding = pd.OAEP(
-                                                mgf=pd.MGF1(algorithm=h.SHA1()),
-                                                            algorithm=h.SHA1(),
-                                                            label=None))
+    decrypted = oaep.decrypt(encrypted)
+    assert decrypted == message,"Decryption failed"
     
-    assert decrypted == openssl_decrypted == message
-    print("Kompatibel")
+    if compare_to_openssl:
+        import cryptography.hazmat.primitives.asymmetric.padding as pd
+        import cryptography.hazmat.primitives.hashes as h
+        private_key_openssl = load_hazmat_private_key("RSA_Implementation/private_key.pem")
+        public_key_openssl = load_hazmat_public_key("RSA_Implementation/public_key.pem")
+        encrypted_openssl = public_key_openssl.encrypt(message, pd.OAEP(algorithm=h.SHA1(), mgf=pd.MGF1(algorithm=h.SHA1()), label=None))
+        decrypted_openssl = private_key_openssl.decrypt(encrypted_openssl, pd.OAEP(algorithm=h.SHA1(), mgf=pd.MGF1(h.SHA1()), label=None))
+        decrpyt_openssl = oaep.decrypt(encrypted_openssl)
+        decrypt_oaep = private_key_openssl.decrypt(encrypted, pd.OAEP(algorithm=h.SHA1(), mgf=pd.MGF1(h.SHA1()), label=None))
+        assert decrpyt_openssl == message == decrypt_oaep,"Decryption failed"
+    
+   
+        

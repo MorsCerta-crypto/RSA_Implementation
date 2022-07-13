@@ -43,7 +43,7 @@ class PrimeGenerator:
             
             return False
     
-    def get_primes_p_q(self, n_bits: int, n_processes:int = 8):
+    def get_primes_p_q(self, n_bits: int, n_processes:int = 8)->None:
         """Returns two primes of nbits bits"""
         
         
@@ -187,6 +187,7 @@ class PrimeGenerator:
         elem = self.results_r.recv()
         if elem:
             return elem
+        return 0,0
             
        
         
@@ -279,66 +280,10 @@ class RandomNumberGenerator:
         odd_int = value | 1
         return odd_int
     
-
-            
             
 if __name__ == "__main__":
-    
-    import time
     pg = PrimeGenerator(n_bits = 2048)
-    # print("running 1 multiprocessing")
-    # start = time.time()
-    # for _ in range(10):
-    #     results = pg.get_primes_p_q(2048,1)
-    # #print("results:",results)
-    # end = time.time()
-    # print("multiprocessing:", (end - start) /10)
-
-    
     n_bits = 2048
-    print("running 4 multiprocessing")
     n_processes = 2
-    print(f"running {n_processes//2} processes for p,q")
-    runs = 5
-    start = time.time()
-    for _ in range(runs):
-        results = pg.primes(n_bits,n_processes)
-        
-    #print("results:",results)
-    end = time.time()
-    print("multiprocessing 4:", (end - start) /runs)
-
-    
-    # print("running 4 multiprocessing")
-    # n_processes = 4
-    # print(f"running {n_processes//2} processes for p,q")
-    # runs = 5
-    # start = time.time()
-    # for _ in range(runs):
-    #     results = pg.primes(n_bits,n_processes)
-        
-    # #print("results:",results)
-    # end = time.time()
-    # print("multiprocessing 4:", (end - start) /runs)
-    
-    # print("running 8 multiprocessing")
-    # n_processes = 8
-    # print(f"running {n_processes//2} processes for p, q")
-    
-    # start = time.time()
-    # for _ in range(runs):
-    #     results = pg.primes(n_bits,n_processes)
-    # #print("results:",results)
-    # end = time.time()
-    # print("multiprocessing 8:", (end - start) /runs)
-    
-    # print("running 12 multiprocessing")
-    # n_processes = 12
-    # print(f"running {n_processes//2} processes for p, q")
-    
-    # start = time.time()
-    # for _ in range(runs):
-    #     results = pg.primes(n_bits,n_processes)
-    # #print("results:",results)
-    # end = time.time()
-    # print("multiprocessing 12:", (end - start) /runs)
+    results = pg.primes(n_bits,n_processes)
+    print(results)

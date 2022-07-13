@@ -4,9 +4,8 @@
 5.2.2.  RSAVP1 - RSA Verification Primitive: rsa_verify
 """
 
-
 from math import ceil
-from typing import Optional
+from utils import modular_pow,modexp_lr_k_ary
 from keys import PrivateKey,PublicKey
 from errors import EncodingError, InvalidSignatureError
 from conversion import octet_string_to_integer,integer_to_octet_string
@@ -44,7 +43,7 @@ class SignaturGenerator:
         assert isinstance(message,int), "message must be an integer"
         if message>=self.private_key.n or message<0:
             raise ValueError("message representative out of range")
-        return pow(message,self.private_key.d,self.private_key.n)
+        return modexp_lr_k_ary(message,self.private_key.d,self.private_key.n)
 
 
     def rsa_validate(self,signature:int)->int:
@@ -54,7 +53,7 @@ class SignaturGenerator:
         assert isinstance(signature,int), "signature must be an integer"
         if signature>=self.public_key.n or signature<0:
             raise ValueError("signature representative out of range")
-        return pow(signature,self.public_key.e,self.public_key.n)
+        return modexp_lr_k_ary(signature,self.public_key.e,self.public_key.n)
     
     def verify(self,message:bytes,signature:bytes)->bool:
         """
@@ -196,65 +195,30 @@ class SignaturGenerator:
         return encoded_message
     
 if __name__ == "__main__":
-    # print("Signature Generator")
-    # from keys import KeyGenerator
-    # key_gen = KeyGenerator()
-    # d = 58779556182818738985986705225610661686329506542428894442645744302725530691009890590870011667581511671292654634043341751985805234217673686768024575517293113812247521040485962275309835477719534415625922345556511910861441495386930853169799551016774891012483392240899599379705790574930347658844076243628008827321
-    # p = 617876237888196012858393099267522069639213486113619473053497484282649554261637088998713590804835147379133713797266162140867244360067453
-    # q = 160508708975866499036717045208421794007876132466659291439412556580671489272109445462119195038230477195107406303319373369121427728954736432538640278754340031368275267278628567
-    # e = 65537
-    # n = 99174517250299711580583649573175242255669666871023413616035685821582347009672661731942639720368908951458607902358172345078745659061444446730577178777624305102938825970138073309727899452703453274911167794242325995553531331009122599377432863654353475567653086474811947212796569343366961268620824869377452729851
-    
-    # print("generating keys")
-    # message = b"Crypto"
-    # private_key,public_key = key_gen.gen_keypair(p=p,q=q,exponent=e)
-    # #private_key,public_key = key_gen.new_keys(n_bits=1024,exponent=e)
-    # print(private_key,public_key)
-    # s = SignaturGenerator(private_key=private_key,
-    #                       public_key=public_key,
-    #                       salt_length=1)
-    # print("signing message")
-    # res = s.sign(message=message)
-    
-    # verify = s.verify(signature=res,message=message)
-    # print("valid?:",verify)
-    
-    import cryptography.hazmat.primitives.asymmetric.padding as pd
-    import cryptography.hazmat.primitives.hashes as h
+    compare_to_openssl = False
     from conversion import octet_string_to_integer, integer_to_octet_string
     from openssl import read_private_key, read_public_key, load_hazmat_private_key, load_hazmat_public_key
+    
     private_key = read_private_key("RSA_Implementation/private_key.pem")
     public_key = read_public_key("RSA_Implementation/public_key.pem")
-    private_key_openssl = load_hazmat_private_key("RSA_Implementation/private_key.pem")
-    public_key_openssl = load_hazmat_public_key("RSA_Implementation/public_key.pem")
-    #public_key_openssl = private_key_openssl.public_key()
-    
     s = SignaturGenerator(private_key=private_key,
                           public_key=public_key,
                           salt_length=8)
+    
     # Plaintext
     message = b"Hello World!"
     # Encrytion Implemented
     sign = s.sign(message)
-    # Encryption with OpenSSL
-    openssl_sign = private_key_openssl.sign(message,
-                                            pd.PSS(
-                                                    mgf=pd.MGF1(h.SHA1()),
-                                                    salt_length=8,
-                                                ),  # type: ignore
-                                           h.SHA1()) # type: ignore
-    # Make sure the Encoded messages are not equal
-    assert sign != openssl_sign
-    # Decryption Implemented with encoded message from OpenSSL    
-    verified = s.verify(message,openssl_sign)
-    # Decryption with OpenSSL
-    public_key_openssl.verify(
-                            sign,
-                            message,
-                            pd.PSS(
-                                    mgf=pd.MGF1(algorithm=h.SHA1()),
-                                    salt_length = 8),# type: ignore
-                            h.SHA1()) # type: ignore
+    verify = s.verify(message, sign)
+    assert verify,"Signature verification failed"
+
+    if compare_to_openssl:
+        import cryptography.hazmat.primitives.asymmetric.padding as pd
+        import cryptography.hazmat.primitives.hashes as h
+        private_key_openssl = load_hazmat_private_key("RSA_Implementation/private_key.pem")
+        public_key_openssl = load_hazmat_public_key("RSA_Implementation/public_key.pem")
+        openssl_sign = private_key_openssl.sign(message,pd.PSS(mgf=pd.MGF1(h.SHA1()),salt_length=8),h.SHA1())   # type: ignore
+        verified = s.verify(message,openssl_sign)
+        public_key_openssl.verify(sign,message,pd.PSS(mgf=pd.MGF1(algorithm=h.SHA1()),salt_length=8),h.SHA1()) # type: ignore
+        assert verified == True
     
-    assert verified == True
-    print("Kompatibel")

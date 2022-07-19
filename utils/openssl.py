@@ -1,9 +1,9 @@
 
     
-import rsa
-from keys import PrivateKey
-from keys import PublicKey
 
+from rsa_logic.keys import PrivateKey
+from rsa_logic.keys import PublicKey
+import rsa
 
     
 def read_private_key(filename:str)->PrivateKey:

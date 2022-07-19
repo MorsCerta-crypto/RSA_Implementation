@@ -1,7 +1,7 @@
 
 import hashlib
 from typing import Callable, Optional
-from conversion import integer_to_octet_string
+from utils.conversion import integer_to_octet_string
 from math import ceil
 
 HASH_LIMITATIONS = {

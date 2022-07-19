@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from math import ceil
 import random
 from typing import Optional
-from errors import KeyGenError
-from primes import PrimeGenerator
+from rsa_logic.errors import KeyGenError
+from utils.primes import PrimeGenerator
 
 
 DEFAULT_EXPONENT = 65537

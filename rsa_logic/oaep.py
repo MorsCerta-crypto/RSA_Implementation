@@ -7,12 +7,14 @@
 
 import os
 from typing import Optional
-from conversion import integer_to_octet_string, octet_string_to_integer
-from crypto import rsa_encryption,rsa_decryption
-from hashf import Hasher
-from keys import PublicKey,PrivateKey
-from errors import DecryptionError, EncryptionError, DecodingError
-from utils import byte_xor
+from rsa_logic.crypto import rsa_encryption,rsa_decryption
+from rsa_logic.keys import PublicKey,PrivateKey
+from rsa_logic.errors import DecryptionError, EncryptionError, DecodingError
+from utils.utils import byte_xor
+from utils.hashf import Hasher
+from utils.conversion import integer_to_octet_string, octet_string_to_integer
+
+
 
 
 

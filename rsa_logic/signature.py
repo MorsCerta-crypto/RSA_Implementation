@@ -5,13 +5,12 @@
 """
 
 from math import ceil
-from utils import modular_pow,modexp_lr_k_ary
-from keys import PrivateKey,PublicKey
-from errors import EncodingError, InvalidSignatureError
-from conversion import octet_string_to_integer,integer_to_octet_string
-from hashf import Hasher  
-from primes import RandomNumberGenerator
-from utils import byte_xor, size
+from rsa_logic.keys import PrivateKey,PublicKey
+from rsa_logic.errors import EncodingError, InvalidSignatureError
+from utils.conversion import octet_string_to_integer,integer_to_octet_string
+from utils.hashf import Hasher  
+from utils.primes import RandomNumberGenerator
+from utils.utils import byte_xor, size,modexp_lr_k_ary
 
 MAX_BIT_LENGTH = 2^256
 

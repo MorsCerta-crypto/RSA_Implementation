@@ -4,10 +4,8 @@
 from math import ceil, sqrt
 from multiprocessing import Pipe, Process
 import multiprocessing
-from multiprocessing.connection import Connection
 import os
 import struct
-from threading import Thread
 
 
 class FoundPrimeException(Exception):

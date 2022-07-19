@@ -6,7 +6,7 @@
 
 """
 
-from keys import PublicKey,PrivateKey
+from rsa_logic.keys import PublicKey,PrivateKey
 
 def rsa_encryption(public_key:PublicKey,message:int)->int:
     """

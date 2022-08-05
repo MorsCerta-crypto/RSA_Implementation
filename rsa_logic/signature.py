@@ -195,8 +195,8 @@ class SignaturGenerator:
     
 if __name__ == "__main__":
     compare_to_openssl = False
-    from conversion import octet_string_to_integer, integer_to_octet_string
-    from openssl import read_private_key, read_public_key, load_hazmat_private_key, load_hazmat_public_key
+    from utils.conversion import octet_string_to_integer, integer_to_octet_string
+    from utils.openssl import read_private_key, read_public_key, load_hazmat_private_key, load_hazmat_public_key
     
     private_key = read_private_key("RSA_Implementation/private_key.pem")
     public_key = read_public_key("RSA_Implementation/public_key.pem")

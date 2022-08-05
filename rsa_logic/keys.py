@@ -88,9 +88,8 @@ class KeyGenerator:
     
     @staticmethod
     def extend_euclid(a: int, b: int) -> tuple[int, int, int]:
-        """Calculates the extended Euclid algorithm for two integers a and b.
-        Returns a tuple (gcd, x, y) where gcd is the greatest common divisor of a and b,
-        x and y are the coefficients of the Bezout identity.
+        """
+        Calculates the extended Euclid algorithm for two integers a and b.
         """
 
         if b == 0:

@@ -30,12 +30,12 @@ def rsa_decryption(private_key:PrivateKey,ciphertext:int)->int:
  
  
 if __name__=="__main__":
-    from conversion import octet_string_to_integer, integer_to_octet_string
-    from openssl import read_private_key, read_public_key, read_decrypted_message
+    from utils.conversion import octet_string_to_integer, integer_to_octet_string
+    from utils.openssl import read_private_key, read_public_key, read_decrypted_message
     #read keys and message
-    private_key = read_private_key("/Users/macbook/projects/crypto/RSA/RSA_Implementation/private_key.pem")    
-    public_key = read_public_key("/Users/macbook/projects/crypto/RSA/RSA_Implementation/public_key.pem")
-    message = read_decrypted_message("/Users/macbook/projects/crypto/RSA/RSA_Implementation/plaintext.txt")
+    private_key = read_private_key("RSA_Implementation/private_key.pem")    
+    public_key = read_public_key("RSA_Implementation/public_key.pem")
+    message = read_decrypted_message("RSA_Implementation/plaintext.txt")
     
     #encrypt
     int_encrypted = rsa_encryption(public_key,octet_string_to_integer(message))
